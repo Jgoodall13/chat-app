@@ -6,7 +6,7 @@ export const signup = async (req, res) => {
   const { fullName, email, password } = req.body;
   try {
     if (!fullName || !email || !password) {
-      res.status(400).json({ message: "All fields are required" });
+      return res.status(400).json({ message: "All fields are required" });
     }
     if (password.length < 6) {
       return res
@@ -40,8 +40,6 @@ export const signup = async (req, res) => {
     } else {
       res.status(400).json({ message: "Invalid user data" });
     }
-
-    res.send({ status: "Good", user });
   } catch (error) {
     console.log("Error in signup controller", error.message);
     res.statue(500).json({ message: "Internal Server Error" });
@@ -51,24 +49,37 @@ export const signup = async (req, res) => {
 export const login = async (req, res) => {
   const { email, password } = req.body;
   try {
-    if (!email || !password) {
-      res.status(400).json({ message: "All fields are required" });
-    }
     const user = await User.findOne({ email });
     if (!user) {
-      res.status(400).json({ message: "Invalid email or password" });
+      return res.status(400).json({ message: "Invalid email or password" });
     }
-    console.log(user);
     const isPasswordValid = await bcrypt.compare(password, user.password);
-    console.log(isPasswordValid);
+    if (!isPasswordValid) {
+      return res.status(400).json({ message: "Invalid credentials" });
+    }
 
-    res.status(200).json({ message: "success!", email, password });
+    generateToken(user._id, res);
+
+    res.status(200).json({
+      _id: user._id,
+      fullName: user.fullName,
+      email: user.email,
+      profilePic: user.profilePic,
+    });
   } catch (err) {
     console.log("Usee login error: ", err.message);
-    res.statue(500).json({ message: "Internal Server Error" });
+    res.status(500).json({ message: "Internal Server Error" });
   }
 };
 
 export const logout = (req, res) => {
-  res.send("logout Page");
+  try {
+    res.cookie("jwt", "", { maxAge: 0 });
+    res.status(200).json({ message: "Logged out succesfully." });
+  } catch (err) {
+    console.log("Error in logout controller", err.message);
+    res.status(500).json({ message: "Internal server error." });
+  }
 };
+
+export const updateProfile = (req, res) => {};
